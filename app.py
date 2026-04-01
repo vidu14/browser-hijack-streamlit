@@ -374,7 +374,8 @@ with tab2:
                     return "background-color: #14532d; color: #86efac"
                 return ""
 
-            st.dataframe(df.style.applymap(color_rows, subset=["Prediction"]), use_container_width=True)
+            # ✅ FIXED: applymap → map (pandas 2.1.0+)
+            st.dataframe(df.style.map(color_rows, subset=["Prediction"]), use_container_width=True)
 
             col_a, col_b = st.columns(2)
             with col_a:
