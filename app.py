@@ -2,7 +2,7 @@
 
 # Real-Time Browser Hijack Risk Predictor – Streamlit App
 
-# Developer : Vidit Desai
+# Developer: Vidit Desai
 
 # ============================================================
 
@@ -15,18 +15,20 @@ import warnings
 import io
 
 import pandas as pd
-import numpy as np
 import streamlit as st
 
-warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore")
 
-st.set_page_config(page_title="Browser Hijack Risk Predictor", layout="wide")
+# ── PAGE CONFIG ─────────────────────────────
+
+st.set_page_config(page_title="Browser Hijack Predictor", layout="wide")
 
 # ── LOAD MODEL ─────────────────────────────
 
 @st.cache_resource
 def load_model():
-with open("model.pkl", "rb") as f:
+model_path = "model.pkl"
+with open(model_path, "rb") as f:
 bundle = pickle.load(f)
 return bundle["model"], bundle["features"]
 
@@ -37,14 +39,15 @@ MODEL, FEATURES = load_model()
 def extract_features(url):
 parsed = urllib.parse.urlparse(url)
 domain = parsed.netloc.lower()
-features = {}
 
 ```
-features["URL_Length"] = 1 if len(url) < 54 else (0 if len(url) <= 75 else -1)
-features["having_IP_Address"] = -1 if re.search(r"(\d{1,3}\.){3}\d{1,3}", domain) else 1
-features["SSLfinal_State"] = 1 if parsed.scheme == "https" else -1
-features["Prefix_Suffix"] = -1 if "-" in domain else 1
-features["HTTPS_token"] = -1 if "https" in domain else 1
+features = {
+    "URL_Length": 1 if len(url) < 54 else (0 if len(url) <= 75 else -1),
+    "having_IP_Address": -1 if re.search(r"(\\d{1,3}\\.){3}\\d{1,3}", domain) else 1,
+    "SSLfinal_State": 1 if parsed.scheme == "https" else -1,
+    "Prefix_Suffix": -1 if "-" in domain else 1,
+    "HTTPS_token": -1 if "https" in domain else 1,
+}
 
 return features
 ```
@@ -57,21 +60,21 @@ url = "http://" + url
 
 ```
 features = extract_features(url)
-feat_vec = [[features.get(f, 0) for f in FEATURES]]
+vector = [[features.get(f, 0) for f in FEATURES]]
 
-proba = MODEL.predict_proba(feat_vec)[0][1]
+prob = MODEL.predict_proba(vector)[0][1]
 
-if proba > 0.7:
-    prediction = "High Risk"
-elif proba > 0.4:
-    prediction = "Suspicious"
+if prob > 0.7:
+    label = "High Risk"
+elif prob > 0.4:
+    label = "Suspicious"
 else:
-    prediction = "Safe"
+    label = "Safe"
 
 return {
     "url": url,
-    "prediction": prediction,
-    "score": round(proba, 4)
+    "prediction": label,
+    "score": round(prob, 4)
 }
 ```
 
@@ -79,13 +82,9 @@ return {
 
 st.title("🛡️ Browser Hijack Risk Predictor")
 
-tab1, tab2 = st.tabs(["🔍 Single URL", "📋 Bulk Scanner"])
+tab1, tab2 = st.tabs(["🔍 Single URL Scanner", "📋 Bulk Scanner"])
 
-# ==============================
-
-# SINGLE URL
-
-# ==============================
+# ── SINGLE URL ─────────────────────────────
 
 with tab1:
 url = st.text_input("Enter URL")
@@ -93,56 +92,57 @@ url = st.text_input("Enter URL")
 ```
 if st.button("Check Risk"):
     if url:
-        res = predict_url(url)
-        st.success(f"Prediction: {res['prediction']}")
+        result = predict_url(url)
+        st.success(f"Prediction: {result['prediction']}")
+        st.write(f"Risk Score: {result['score']}")
     else:
-        st.warning("Enter a URL")
+        st.warning("Please enter a URL")
 ```
 
-# ==============================
-
-# BULK SCANNER
-
-# ==============================
+# ── BULK SCANNER ───────────────────────────
 
 with tab2:
 st.markdown("### Bulk URL Scanner")
 
 ```
-text_urls = st.text_area("Paste URLs (one per line)")
-uploaded = st.file_uploader("Upload file", type=["txt", "csv"])
+text_input = st.text_area("Paste URLs (one per line)")
+file = st.file_uploader("Upload file (.txt or .csv)", type=["txt", "csv"])
 
 urls = []
 
-if text_urls:
-    urls = text_urls.split("\n")
+if text_input:
+    urls = [u.strip() for u in text_input.split("\\n") if u.strip()]
 
-if uploaded:
-    content = uploaded.read().decode("utf-8")
-    urls = content.split("\n")
+if file:
+    content = file.read().decode("utf-8")
+    urls = [u.strip() for u in content.split("\\n") if u.strip()]
 
 if st.button("Scan All URLs"):
     if urls:
         results = []
 
         for i, u in enumerate(urls):
-            if u.strip():
-                res = predict_url(u.strip())
+            try:
+                res = predict_url(u)
                 results.append({
-                    "No": i+1,
+                    "No": i + 1,
                     "URL": res["url"],
                     "Prediction": res["prediction"],
                     "Score": res["score"]
                 })
+            except:
+                results.append({
+                    "No": i + 1,
+                    "URL": u,
+                    "Prediction": "Error",
+                    "Score": "-"
+                })
 
         df = pd.DataFrame(results)
 
-        st.markdown("### Results")
-
-        # ✅ FIXED TABLE (NO ERROR)
+        st.subheader("Results")
         st.dataframe(df)
 
-        # Download
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("Download CSV", csv, "results.csv")
 
@@ -150,4 +150,7 @@ if st.button("Scan All URLs"):
         st.warning("No URLs provided")
 ```
 
+# ── FOOTER ────────────────────────────────
 
+st.markdown("---")
+st.markdown("Built with ❤️ using Streamlit")
