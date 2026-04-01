@@ -11,7 +11,6 @@ import re
 import pickle
 import urllib.parse
 import warnings
-import io
 
 import pandas as pd
 import streamlit as st
@@ -22,7 +21,7 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(page_title="Browser Hijack Predictor", layout="wide")
 
-# ── LOAD MODEL (FIXED PATH) ─────────────────
+# ── LOAD MODEL (FIXED + CORRECT INDENTATION) ────────────────
 
 @st.cache_resource
 def load_model():
@@ -142,7 +141,6 @@ if st.button("Scan All URLs"):
         st.subheader("Results")
         st.dataframe(df)
 
-        # Download CSV
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("Download CSV", csv, "results.csv")
 
