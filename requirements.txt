@@ -1,0 +1,9 @@
+# ─────────────────────────────────────────────────────────────
+#  Real-Time Browser Hijack Risk Predictor – Requirements
+#  Install with:  pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────
+
+streamlit>=1.35.0       # Web UI framework
+scikit-learn>=1.3.0     # ML model loading & prediction
+pandas>=2.0.0           # Feature table display & CSV logging
+numpy>=1.24.0           # Numerical operations (used by sklearn)
